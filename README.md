@@ -505,7 +505,7 @@ This project is proprietary and confidential.
 
 For issues and questions:
 - Create an issue on GitHub
-- Contact: manikandanesaki10b@gmail.com
+- Contact: manassenthil@gmail.com
 
 **Last Updated**: January 30, 2026
 **Version**: 1.0.0
