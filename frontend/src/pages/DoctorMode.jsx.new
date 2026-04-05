@@ -1,0 +1,264 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FaUserMd, FaChartLine, FaHistory, FaSearch, FaCalendarAlt, FaFileMedical, FaBell } from 'react-icons/fa';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { patientService, sessionService, medicationService } from '../services/api';
+import PatientProfile from '../components/PatientProfile';
+import PatientList from '../components/PatientList';
+
+const DoctorMode = () => {
+  // State variables
+  const [patients, setPatients] = useState([]);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('overview');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [medicationHistory, setMedicationHistory] = useState([
+    { date: '01/05/2025', medication: 'Fluoxetine', dosage: '20mg', prescribedFor: 'Depression' },
+    { date: '07/05/2025', medication: 'Fluoxetine', dosage: '40mg', prescribedFor: 'Depression (increased)' },
+    { date: '15/05/2025', medication: 'Fluoxetine + Lorazepam', dosage: '40mg + 0.5mg', prescribedFor: 'Depression + Anxiety' },
+    { date: '19/05/2025', medication: 'Olanzapine', dosage: '5mg', prescribedFor: 'Aggression' }
+  ]);
+  
+  const navigate = useNavigate();
+  
+  // Mock emotional trend data
+  const emotionalTrendData = [
+    { date: '5/1', sadness: 0.3, anger: 0.5, fear: 0.2 },
+    { date: '5/3', sadness: 0.5, anger: 0.3, fear: 0.4 },
+    { date: '5/5', sadness: 0.7, anger: 0.4, fear: 0.3 },
+    { date: '5/7', sadness: 0.4, anger: 0.3, fear: 0.25 },
+    { date: '5/9', sadness: 0.6, anger: 0.5, fear: 0.35 },
+    { date: '5/11', sadness: 0.3, anger: 0.25, fear: 0.4 },
+    { date: '5/13', sadness: 0.2, anger: 0.1, fear: 0.3 },
+    { date: '5/15', sadness: 0.4, anger: 0.3, fear: 0.5 },
+    { date: '5/17', sadness: 0.5, anger: 0.6, fear: 0.4 },
+    { date: '5/19', sadness: 0.8, anger: 0.4, fear: 0.5 },
+    { date: '5/21', sadness: 0.4, anger: 0.35, fear: 0.7 },
+  ];
+  
+  // Fetch patient data from server
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        setIsLoading(true);
+        const data = await patientService.getAll();
+        console.log('Fetched patients:', data);
+        
+        // Map the data to include initials for the avatar
+        const patientsWithInitials = data.map(patient => ({
+          ...patient,
+          id: patient.name.split(' ').map(n => n[0]).join(''),
+          status: patient.concern === 'High' ? 'Alert' : 
+                 patient.concern === 'Medium' ? 'Concern' : 'Stable',
+          lastCheckIn: '2025-05-22' // Mock date for now
+        }));
+        
+        setPatients(patientsWithInitials);
+        
+        // Select the first patient by default if we have patients
+        if (patientsWithInitials.length > 0 && !selectedPatient) {
+          handlePatientSelect(patientsWithInitials[0]);
+        }
+        
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error fetching patients:', err);
+        setError('Failed to load patients');
+        setIsLoading(false);
+      }
+    };
+    
+    fetchPatients();
+  }, [selectedPatient]);
+  
+  // Handle patient selection
+  const handlePatientSelect = (patient) => {
+    setSelectedPatient(patient);
+    // In a real app, fetch patient details
+    // fetchPatientDetails(patient.patientId);
+  };
+  
+  // Filter patients based on search query
+  const filteredPatients = patients.filter(patient => 
+    patient.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+  
+  // Handle logout
+  const handleLogout = () => {
+    navigate('/');
+  };
+  
+  // Handle mode switch
+  const handleModeSwitch = (mode) => {
+    if (mode === 'patient') {
+      navigate('/patient/default');
+    }
+  };
+  
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <FaUserMd className="h-8 w-8 text-blue-500" />
+              <h1 className="ml-2 text-xl font-bold text-gray-900">Doctor Dashboard</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button 
+                onClick={() => handleModeSwitch('patient')}
+                className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Switch to Patient Mode
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+      
+      {/* Main content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="md:col-span-1">
+            <PatientList 
+              patients={filteredPatients}
+              selectedPatient={selectedPatient}
+              onSelectPatient={handlePatientSelect}
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+            />
+          </div>
+          
+          {/* Main content area */}
+          <div className="md:col-span-3">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="text-gray-500">Loading...</div>
+              </div>
+            ) : error ? (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {error}
+              </div>
+            ) : !selectedPatient ? (
+              <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+                Select a patient to view details
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Left side - Patient profile */}
+                <div className="md:col-span-1">
+                  <PatientProfile patient={selectedPatient} />
+                </div>
+                
+                {/* Right side - Patient overview */}
+                <div className="md:col-span-2 space-y-6">
+                  {/* Patient overview card */}
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h2 className="text-xl font-bold">{selectedPatient.name}</h2>
+                        <p className="text-gray-500">{selectedPatient.age} years, {selectedPatient.gender}</p>
+                      </div>
+                      <div className="space-x-2">
+                        <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                          Contact
+                        </button>
+                        <button className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
+                          Schedule
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-4 gap-4 mt-6">
+                      <div className="bg-blue-50 rounded-lg p-4 text-center">
+                        <div className="text-sm font-medium text-blue-700 mb-1">Sessions</div>
+                        <div className="text-2xl font-bold text-blue-800">11</div>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-4 text-center">
+                        <div className="text-sm font-medium text-purple-700 mb-1">Dominant Emotion</div>
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-xl">😔</span>
+                          <span className="text-xl font-bold text-purple-800">Sad</span>
+                        </div>
+                      </div>
+                      <div className="bg-red-50 rounded-lg p-4 text-center">
+                        <div className="text-sm font-medium text-red-700 mb-1">Avg. Aggression</div>
+                        <div className="text-2xl font-bold text-red-800">44%</div>
+                      </div>
+                      <div className="bg-blue-50 rounded-lg p-4 text-center">
+                        <div className="text-sm font-medium text-blue-700 mb-1">Avg. Depression</div>
+                        <div className="text-2xl font-bold text-blue-800">49%</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Emotional trends chart */}
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h3 className="text-lg font-semibold mb-4">Emotional Trends</h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={emotionalTrendData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" />
+                          <YAxis domain={[0, 1]} />
+                          <Tooltip />
+                          <Line type="monotone" dataKey="sadness" stroke="#8884d8" name="Depression" activeDot={{ r: 8 }} />
+                          <Line type="monotone" dataKey="anger" stroke="#ff5252" name="Aggression" />
+                          <Line type="monotone" dataKey="fear" stroke="#4299e1" name="Anxiety" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  
+                  {/* Medication history */}
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h3 className="text-lg font-semibold mb-4">Medication History</h3>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Medication</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dosage</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prescribed For</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {medicationHistory.map((med, index) => (
+                            <tr key={index}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{med.date}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{med.medication}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{med.dosage}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{med.prescribedFor}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default DoctorMode;

@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.streak{
+    z-index: 10000 !important;
+    top: -190px;
+    right:-600px;
+}

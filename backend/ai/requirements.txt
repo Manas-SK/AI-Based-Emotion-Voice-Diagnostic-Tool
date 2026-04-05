@@ -1,0 +1,21 @@
+# Face Emotion Recognition (FER) Model Dependencies
+# Core web framework and server
+fastapi>=0.100.0
+uvicorn>=0.20.0
+python-multipart>=0.0.5
+
+# Deep Learning - PyTorch (pre-trained model inference)
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Image Processing
+pillow>=10.0.0
+
+# Numeric/Data Processing
+numpy>=1.20.0
+
+# HTTP Client
+requests>=2.30.0
+
+# Configuration
+python-dotenv>=1.0.0
